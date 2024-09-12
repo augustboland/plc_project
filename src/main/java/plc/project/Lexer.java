@@ -33,7 +33,9 @@ public final class Lexer {
         List<Token> tokens = new ArrayList<>();
         while (chars.has(0)) {
 
-            match("\\s*");
+            while (peek("\\s")) {
+                match("\\s");
+            }
             tokens.add(lexToken());
         }
         return tokens;
@@ -51,16 +53,19 @@ public final class Lexer {
     public Token lexToken() {
         //This method needs to identify what type of token is going to be created.
         //It needs to be called from lex.
-        if (peek("[A-Za-z_][A-Za-z0-9_-]*")) {
+        if (peek("[A-Za-z_]")) {
             return lexIdentifier();
         }
-        else if (peek("[+-]?[0-9]+")) {
+        else if (peek("[+-]", "[0-9]")) {
             return lexNumber();
         }
-        else if (peek("\\'a$\\'")) {
+        else if (peek("[0-9]")) {
+            return lexNumber();
+        }
+        else if (peek("'")) {
             return lexCharacter();
         }
-        else if (peek("\".*\"")) {
+        else if (peek("\"")) {
             return lexString();
         }
         //TODO: test this as I believe we already catch white space. but this could be faulty.
@@ -70,30 +75,65 @@ public final class Lexer {
     }
 
     public Token lexIdentifier() {
-        //TODO: Do we need a check in here? It seems like we don't reach this unless we've been
-        //triggered by reaching the first valid character.
 
-        match("[A-Za-z_][A-Za-z0-9_-]*");
+        match("[A-Za-z_]");
+        while (peek("[A-Za-z0-9_-]")) {
+            match("[A-Za-z0-9_-]");
+        }
         return chars.emit(Token.Type.IDENTIFIER);
     }
 
     public Token lexNumber() {
-        //We can have digits or a decimal point followed by digits as long as it's the only one.
-        if (peek("[+-]?[0-9]+\\.[0-9]+")) {
-            match("[+-]?[0-9]+\\.[0-9]+");
+
+        if (peek ("[+-]")) {
+            match("[+-]");
+        }
+        else if (peek ("[0-9]")) {
+            match("[0-9]");
+        }
+        while (peek("[0-9]")) {
+            match("[0-9]");
+        }
+        if (peek("\\.", "[0-9]")) {
+            match(".");
+            while (peek("[0-9]")) {
+                match("[0-9]");
+            }
             return chars.emit(Token.Type.DECIMAL);
         }
-        else {
-            //Not a decimal so handle normaly.
-            match("[+-]?[0-9]+");
-            return chars.emit(Token.Type.INTEGER);
-        }
+        return chars.emit(Token.Type.INTEGER);
     }
 
     //TODO: I need to make string and character accept escapes.
     public Token lexCharacter() {
-        match("\\'a$\\'");
-        return chars.emit(Token.Type.CHARACTER);
+        match("'");
+        if (peek("\\\\")) {
+            match("\\\\");
+            if (peek("[^bnrt'\"\\\\]")) {
+                throw new ParseException("Invalid Escape", chars.index);
+            }
+            //we don't need any other checks here right?
+            else {
+                lexEscape();
+                match("[bnrt'\"\\\\]");
+                match("'");
+                return chars.emit(Token.Type.CHARACTER);
+            }
+        }
+        else if (peek("'")) //empty
+        {
+            throw new ParseException("Empty Character", chars.index);
+        }
+        else if (peek(".", "[^']")) //TODO: needs to be tested if I can just say not "'".
+        {
+            throw new ParseException("Invalid Character", chars.index);
+        }
+        else //I don't need any more checks right?
+        {
+            match(".");
+            match("'");
+            return chars.emit(Token.Type.CHARACTER);
+        }
     }
 
     public Token lexString() {
@@ -102,7 +142,7 @@ public final class Lexer {
     }
 
     public void lexEscape() {
-        throw new UnsupportedOperationException(); //TODO. I'm not understanding how this is used.
+        //Do nothing?
     }
 
     public Token lexOperator() {
