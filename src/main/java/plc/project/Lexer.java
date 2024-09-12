@@ -46,14 +46,18 @@ public final class Lexer {
      * This method determines the type of the next token, delegating to the
      * appropriate lex method. As such, it is best for this method to not change
      * the state of the char stream (thus, use peek not match).
-     *
+     * <p>
      * The next character should start a valid token since whitespace is handled
      * by {@link #lex()}
+     *
+     * @return
      */
     public Token lexToken() {
         //This method needs to identify what type of token is going to be created.
         //It needs to be called from lex.
+        System.out.println("chars.get(0): " + chars.get(0));
         if (peek("[A-Za-z_]")) {
+            System.out.println("iden");
             return lexIdentifier();
         }
         else if (peek("[+-]", "[0-9]")) {
@@ -66,20 +70,32 @@ public final class Lexer {
             return lexCharacter();
         }
         else if (peek("\"")) {
+            System.out.println("\"<--");
+            System.out.println(chars.get(0));
             return lexString();
         }
-        //TODO: test this as I believe we already catch white space. but this could be faulty.
+        else if(peek(" ")){
+            System.out.println("space");
+            return lexEscape();
+        }
+        //TODO: test this as I believe we already catch white space, but this could be faulty.
         else {
             return lexOperator();
         }
+
+//        change this
+        //return lexIdentifier();
     }
 
     public Token lexIdentifier() {
 
         match("[A-Za-z_]");
         while (peek("[A-Za-z0-9_-]")) {
+            System.out.println(chars.get(0));
             match("[A-Za-z0-9_-]");
+            System.out.println(chars.get(0));
         }
+        System.out.println(chars.get(0));
         return chars.emit(Token.Type.IDENTIFIER);
     }
 
@@ -137,17 +153,45 @@ public final class Lexer {
     }
 
     public Token lexString() {
-        match("\".*\"");
+//        throw new ParseException("Invalid Character", chars.index);
+        match("\"");
+        while(peek("[^\"]")){
+            if(chars.get(0) == '\\'){
+                if(!chars.has(1)){
+                    throw new ParseException("Invalid String", chars.index);
+                }
+                if(chars.get(1) == 'n' || chars.get(1) == 't' || chars.get(1) == 'b' || chars.get(1) == '\"' || chars.get(1) == 'r' || chars.get(1) == '\\') {
+
+                }else{
+                    throw new ParseException("Invalid String", chars.index);
+                }
+
+
+            }
+
+            match(".");
+        }
+
+        if(peek("\"")){
+            match("\"");
+        }else{
+            throw new ParseException("Invalid String", chars.index);
+        }
+
+//        match("\"");
         return chars.emit(Token.Type.STRING);
     }
 
-    public void lexEscape() {
+    public Token lexEscape() {
         //Do nothing?
+        System.out.println("hehehe");
+        return null;
     }
 
     public Token lexOperator() {
-        if (peek("<=")) {
-            match("<=");
+//        System.out.println(chars.get(0) + " | " + chars.get(1));
+        if (peek("<" + "=")) {
+            match("<" + "=");
             return chars.emit(Token.Type.OPERATOR);
         }
         else if (peek(">=")) {
@@ -235,7 +279,9 @@ public final class Lexer {
 
         public Token emit(Token.Type type) {
             int start = index - length;
+            System.out.println( input.substring(start, index) + " | " + start + " | " + length + " | " + index);
             skip();
+            System.out.println( input.substring(start, index) + " | " + start + " | " + length + " | " + index);
             return new Token(type, input.substring(start, index), start);
         }
 

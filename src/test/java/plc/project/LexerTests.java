@@ -18,7 +18,7 @@ public class LexerTests {
         test(input, Token.Type.IDENTIFIER, success);
     }
 
-    private static Stream<Arguments> testIdentifier() {
+     private static Stream<Arguments> testIdentifier() {
         return Stream.of(
                 Arguments.of("Alphabetic", "getName", true),
                 Arguments.of("Alphanumeric", "thelegend27", true),
@@ -76,6 +76,7 @@ public class LexerTests {
 
     @ParameterizedTest
     @MethodSource
+    //TODO: Olivia
     void testString(String test, String input, boolean success) {
         test(input, Token.Type.STRING, success);
     }
@@ -83,15 +84,19 @@ public class LexerTests {
     private static Stream<Arguments> testString() {
         return Stream.of(
                 Arguments.of("Empty", "\"\"", true),
+                Arguments.of("Empty", "\"s\"", true),
                 Arguments.of("Alphabetic", "\"abc\"", true),
                 Arguments.of("Newline Escape", "\"Hello,\\nWorld\"", true),
+                //False
                 Arguments.of("Unterminated", "\"unterminated", false),
+                Arguments.of("Unterminated", "\"unterminated\\", false),
                 Arguments.of("Invalid Escape", "\"invalid\\escape\"", false)
         );
     }
 
     @ParameterizedTest
     @MethodSource
+    //TODO: Olivia
     void testOperator(String test, String input, boolean success) {
         //this test requires our lex() method, since that's where whitespace is handled.
         test(input, Arrays.asList(new Token(Token.Type.OPERATOR, input, 0)), success);
@@ -108,6 +113,7 @@ public class LexerTests {
 
     @ParameterizedTest
     @MethodSource
+    //TODO: Olivia
     void testExamples(String test, String input, List<Token> expected) {
         test(input, expected, true);
     }
