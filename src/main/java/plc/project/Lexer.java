@@ -33,17 +33,8 @@ public final class Lexer {
         List<Token> tokens = new ArrayList<>();
         while (chars.has(0)) {
 
-            while (match("\\s")) {
-                //skipping whitespaces.
-            }
-            //make sure whitespaces didn't take us to the end.
-            if (!chars.has(0)) {
-                break;
-            }
-            else {
-                tokens.add(lexToken());
-            }
-
+            match("\\s*");
+            tokens.add(lexToken());
         }
         return tokens;
 
@@ -72,14 +63,10 @@ public final class Lexer {
         else if (peek("\".*\"")) {
             return lexString();
         }
-        else if (peek("[^\\w\\s]")) {
+        //TODO: test this as I believe we already catch white space. but this could be faulty.
+        else {
             return lexOperator();
         }
-        else {
-            lexToken();
-        }
-        //I'm not sure when this would be reached.
-        throw new UnsupportedOperationException("No token types were flagged. you went too far.");
     }
 
     public Token lexIdentifier() {
