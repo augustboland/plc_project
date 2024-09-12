@@ -1,5 +1,6 @@
 package plc.project;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -29,7 +30,23 @@ public final class Lexer {
      * whitespace where appropriate.
      */
     public List<Token> lex() {
-        throw new UnsupportedOperationException(); //TODO
+        List<Token> tokens = new ArrayList<>();
+        while (chars.has(0)) {
+
+            while (match("\\s")) {
+                //skipping whitespaces.
+            }
+            //make sure whitespaces didn't take us to the end.
+            if (!chars.has(0)) {
+                break;
+            }
+            else {
+                tokens.add(lexToken());
+            }
+
+        }
+        return tokens;
+
     }
 
     /**
@@ -40,34 +57,88 @@ public final class Lexer {
      * The next character should start a valid token since whitespace is handled
      * by {@link #lex()}
      */
-    //TODO: I'm responsible for lexToken.
     public Token lexToken() {
-        throw new UnsupportedOperationException(); //TODO
+        //This method needs to identify what type of token is going to be created.
+        //It needs to be called from lex.
+        if (peek("[A-Za-z_][A-Za-z0-9_-]*")) {
+            return lexIdentifier();
+        }
+        else if (peek("[+-]?[0-9]+")) {
+            return lexNumber();
+        }
+        else if (peek("\\'a$\\'")) {
+            return lexCharacter();
+        }
+        else if (peek("\".*\"")) {
+            return lexString();
+        }
+        else if (peek("[^\\w\\s]")) {
+            return lexOperator();
+        }
+        else {
+            lexToken();
+        }
+        //I'm not sure when this would be reached.
+        throw new UnsupportedOperationException("No token types were flagged. you went too far.");
     }
 
     public Token lexIdentifier() {
-        throw new UnsupportedOperationException(); //TODO
+        //TODO: Do we need a check in here? It seems like we don't reach this unless we've been
+        //triggered by reaching the first valid character.
+
+        match("[A-Za-z_][A-Za-z0-9_-]*");
+        return chars.emit(Token.Type.IDENTIFIER);
     }
 
     public Token lexNumber() {
-        throw new UnsupportedOperationException(); //TODO
+        //We can have digits or a decimal point followed by digits as long as it's the only one.
+        if (peek("[+-]?[0-9]+\\.[0-9]+")) {
+            match("[+-]?[0-9]+\\.[0-9]+");
+            return chars.emit(Token.Type.DECIMAL);
+        }
+        else {
+            //Not a decimal so handle normaly.
+            match("[+-]?[0-9]+");
+            return chars.emit(Token.Type.INTEGER);
+        }
     }
 
+    //TODO: I need to make string and character accept escapes.
     public Token lexCharacter() {
-        throw new UnsupportedOperationException(); //TODO
+        match("\\'a$\\'");
+        return chars.emit(Token.Type.CHARACTER);
     }
 
-    //TODO: I'm the bottom three.
     public Token lexString() {
-        throw new UnsupportedOperationException(); //TODO
+        match("\".*\"");
+        return chars.emit(Token.Type.STRING);
     }
 
     public void lexEscape() {
-        throw new UnsupportedOperationException(); //TODO
+        throw new UnsupportedOperationException(); //TODO. I'm not understanding how this is used.
     }
 
     public Token lexOperator() {
-        throw new UnsupportedOperationException(); //TODO
+        if (peek("<=")) {
+            match("<=");
+            return chars.emit(Token.Type.OPERATOR);
+        }
+        else if (peek(">=")) {
+            match(">=");
+            return chars.emit(Token.Type.OPERATOR);
+        }
+        else if (peek("==")) {
+            match("==");
+            return chars.emit(Token.Type.OPERATOR);
+        }
+        else if (peek("!=")) {
+            match("!=");
+            return chars.emit (Token.Type.OPERATOR);
+        }
+        else {
+            match("[^\\w\\s]");
+            return chars.emit(Token.Type.OPERATOR);
+        }
     }
 
     /**
@@ -75,7 +146,6 @@ public final class Lexer {
      * which should be a regex. For example, {@code peek("a", "b", "c")} would
      * return true if the next characters are {@code 'a', 'b', 'c'}.
      */
-    //TODO: copy these over from lecture.
     public boolean peek(String... patterns) {
         for ( int i = 0; i < patterns.length; i++ ) {
             if ( !chars.has(i) || !String.valueOf(chars.get(i)).matches(patterns[i]) ) {
