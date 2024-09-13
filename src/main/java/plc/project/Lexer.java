@@ -55,12 +55,15 @@ public final class Lexer {
     public Token lexToken() {
         //This method needs to identify what type of token is going to be created.
         //It needs to be called from lex.
-        System.out.println("chars.get(0): " + chars.get(0));
+        if(!chars.has(0)){ //If the string is empty, needs a bit of testing tho
+            System.out.println("empty String!!!"); //TODO: TESTING
+            throw new ParseException("Invalid Escape", chars.index);
+        }
         if (peek("[A-Za-z_]")) {
             System.out.println("iden");
             return lexIdentifier();
         }
-        else if (peek("[+-]", "[0-9]")) {
+        else if (peek("[+-]?", "[0-9]")) {
             return lexNumber();
         }
         else if (peek("[0-9]")) {
@@ -74,12 +77,14 @@ public final class Lexer {
             System.out.println(chars.get(0));
             return lexString();
         }
-        else if(peek(" ")){
+        else if(peek(" ") || chars.get(0) == ' '){
             System.out.println("space");
             return lexEscape();
         }
         //TODO: test this as I believe we already catch white space, but this could be faulty.
         else {
+            System.out.println("hehehe");
+            System.out.println(chars.get(0));
             return lexOperator();
         }
 
@@ -93,14 +98,24 @@ public final class Lexer {
         while (peek("[A-Za-z0-9_-]")) {
             System.out.println(chars.get(0));
             match("[A-Za-z0-9_-]");
-            System.out.println(chars.get(0));
+//            System.out.println(chars.get(0));
+            System.out.println("System.out.println(chars.get(0) == ' ');");
+            System.out.println(chars.get(0) == ' ');
+            if(chars.get(0) ==' '){
+                match(".");
+                return chars.emit(Token.Type.IDENTIFIER);
+            }
         }
-        System.out.println(chars.get(0));
+        if(chars.get(0) ==' '){
+            match(".");
+            return chars.emit(Token.Type.IDENTIFIER);
+        }
         return chars.emit(Token.Type.IDENTIFIER);
     }
+//        System.out.println(chars.get(0));
+//        chars.index++;
 
     public Token lexNumber() {
-
         if (peek ("[+-]")) {
             match("[+-]");
         }
@@ -116,6 +131,10 @@ public final class Lexer {
                 match("[0-9]");
             }
             return chars.emit(Token.Type.DECIMAL);
+        }
+        if(chars.get(0) ==' '){
+            match(".");
+            return chars.emit(Token.Type.IDENTIFIER);
         }
         return chars.emit(Token.Type.INTEGER);
     }
@@ -183,33 +202,52 @@ public final class Lexer {
     }
 
     public Token lexEscape() {
-        //Do nothing?
-        System.out.println("hehehe");
+
+        if(chars.get(0) ==' '){
+            match(".");
+            return chars.emit(Token.Type.IDENTIFIER);
+        }
         return null;
     }
 
     public Token lexOperator() {
 //        System.out.println(chars.get(0) + " | " + chars.get(1));
-        if (peek("<" + "=")) {
-            match("<" + "=");
-            return chars.emit(Token.Type.OPERATOR);
+        System.out.println(peek("<"));
+
+        if(chars.has(1)){
+            if(chars.get(1) == '=' && peek("[=!><]")){
+                System.out.println(chars.get(0) + " | " + chars.get(1));
+                System.out.println("in here!@@");
+
+                match(String.valueOf(chars.get(0)));
+                match("=");
+
+                return chars.emit(Token.Type.OPERATOR);
+            }
         }
-        else if (peek(">=")) {
-            match(">=");
-            return chars.emit(Token.Type.OPERATOR);
-        }
-        else if (peek("==")) {
-            match("==");
-            return chars.emit(Token.Type.OPERATOR);
-        }
-        else if (peek("!=")) {
-            match("!=");
-            return chars.emit (Token.Type.OPERATOR);
-        }
-        else {
-            match("[^\\w\\s]");
-            return chars.emit(Token.Type.OPERATOR);
-        }
+        match(".");
+
+//        if (peek("<" + "=")) {
+//            match("<" + "=");
+//            return chars.emit(Token.Type.OPERATOR);
+//        }
+//        else if (peek(">=")) {
+//            match(">=");
+//            return chars.emit(Token.Type.OPERATOR);
+//        }
+//        else if (peek("==")) {
+//            match("==");
+//            return chars.emit(Token.Type.OPERATOR);
+//        }
+//        else if (peek("!=")) {
+//            match("!=");
+//            return chars.emit (Token.Type.OPERATOR);
+//        }
+//        else {
+//            match("[^\\w\\s]");
+//            return chars.emit(Token.Type.OPERATOR);
+//        }
+        return chars.emit(Token.Type.OPERATOR);
     }
 
     /**
