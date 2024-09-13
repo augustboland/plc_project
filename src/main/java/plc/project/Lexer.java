@@ -109,7 +109,7 @@ public final class Lexer {
         match("'");
         if (peek("\\\\")) {
             match("\\\\");
-            if (peek("[^bnrt'\"\\\\]")) {
+            if (peek("[^bnrt'\"\\\\]")) { //TODO: should this be handled by lexEscape???
                 throw new ParseException("Invalid Escape", chars.index);
             }
             //we don't need any other checks here right?
@@ -143,6 +143,8 @@ public final class Lexer {
 
     public void lexEscape() {
         //Do nothing?
+        //TODO: I need to determine if this is where I should be throwing errors from.
+        //and how I would structure my code to make this possible.
     }
 
     public Token lexOperator() {
