@@ -35,6 +35,7 @@ public final class Lexer {
 
             while (peek("\\s")) {
                 match("\\s");
+                chars.skip();
             }
             tokens.add(lexToken());
         }
@@ -56,11 +57,13 @@ public final class Lexer {
         //This method needs to identify what type of token is going to be created.
         //It needs to be called from lex.
         if(!chars.has(0)){ //If the string is empty, needs a bit of testing tho
-            System.out.println("empty String!!!"); //TODO: TESTING
+            //System.out.println("empty String!!!"); //TODO: TESTING
             throw new ParseException("Invalid Escape", chars.index);
         }
-        if (peek("[A-Za-z_]")) {
-            System.out.println("iden");
+        System.out.println("szlscw;" + chars.get(0));
+        if(peek(" ")){
+            System.out.println("hi there pookie");
+        } else if (peek("[A-Za-z_]")) {
             return lexIdentifier();
         }
         else if (peek("[+-]?", "[0-9]")) {
@@ -73,23 +76,23 @@ public final class Lexer {
             return lexCharacter();
         }
         else if (peek("\"")) {
-            System.out.println("\"<--");
-            System.out.println(chars.get(0));
+            //System.out.println("\"<--");
+            //System.out.println(chars.get(0));
             return lexString();
         }
         else if(peek(" ") || chars.get(0) == ' '){
-            System.out.println("space");
+            //System.out.println("space");
             return lexEscape();
         }
         //TODO: test this as I believe we already catch white space, but this could be faulty.
         else {
-            System.out.println("hehehe");
-            System.out.println(chars.get(0));
+//            System.out.println("hehehe");
+            //System.out.println(chars.get(0));
             return lexOperator();
         }
 
 //        change this
-        //return lexIdentifier();
+        return lexIdentifier();
     }
 
     public Token lexIdentifier() {
@@ -99,21 +102,11 @@ public final class Lexer {
             System.out.println(chars.get(0));
             match("[A-Za-z0-9_-]");
 //            System.out.println(chars.get(0));
-            System.out.println("System.out.println(chars.get(0) == ' ');");
-            System.out.println(chars.get(0) == ' ');
-            if(chars.get(0) ==' '){
-                match(".");
-                return chars.emit(Token.Type.IDENTIFIER);
-            }
+            //System.out.println("//System.out.println(chars.get(0) == ' ');");
         }
-        if(chars.get(0) ==' '){
-            match(".");
-            return chars.emit(Token.Type.IDENTIFIER);
-        }
+//        System.out.println(chars.get(0));
         return chars.emit(Token.Type.IDENTIFIER);
     }
-//        System.out.println(chars.get(0));
-//        chars.index++;
 
     public Token lexNumber() {
         if (peek ("[+-]")) {
@@ -131,10 +124,6 @@ public final class Lexer {
                 match("[0-9]");
             }
             return chars.emit(Token.Type.DECIMAL);
-        }
-        if(chars.get(0) ==' '){
-            match(".");
-            return chars.emit(Token.Type.IDENTIFIER);
         }
         return chars.emit(Token.Type.INTEGER);
     }
@@ -211,13 +200,13 @@ public final class Lexer {
     }
 
     public Token lexOperator() {
-//        System.out.println(chars.get(0) + " | " + chars.get(1));
-        System.out.println(peek("<"));
+//        //System.out.println(chars.get(0) + " | " + chars.get(1));
+        //System.out.println(peek("<"));
 
         if(chars.has(1)){
             if(chars.get(1) == '=' && peek("[=!><]")){
-                System.out.println(chars.get(0) + " | " + chars.get(1));
-                System.out.println("in here!@@");
+//                //System.out.println(chars.get(0) + " | " + chars.get(1));
+//                //System.out.println("in here!@@");
 
                 match(String.valueOf(chars.get(0)));
                 match("=");
@@ -248,6 +237,14 @@ public final class Lexer {
 //            return chars.emit(Token.Type.OPERATOR);
 //        }
         return chars.emit(Token.Type.OPERATOR);
+    }
+
+    public void skip(){
+        if(chars.has(0)){
+            if(chars.get(0) == ' '){
+                match(" ");
+            }
+        }
     }
 
     /**
@@ -317,9 +314,9 @@ public final class Lexer {
 
         public Token emit(Token.Type type) {
             int start = index - length;
-            System.out.println( input.substring(start, index) + " | " + start + " | " + length + " | " + index);
+            //System.out.println( input.substring(start, index) + " | " + start + " | " + length + " | " + index);
             skip();
-            System.out.println( input.substring(start, index) + " | " + start + " | " + length + " | " + index);
+            //System.out.println( input.substring(start, index) + " | " + start + " | " + length + " | " + index);
             return new Token(type, input.substring(start, index), start);
         }
 

@@ -21,8 +21,11 @@ public class LexerTests {
      private static Stream<Arguments> testIdentifier() {
         return Stream.of(
                 Arguments.of("Alphabetic", "getName", true),
+                Arguments.of("Alphabetic", "getNameasklkxmll", true),
                 Arguments.of("Alphanumeric", "thelegend27", true),
                 Arguments.of("Leading Hyphen", "-five", false),
+                Arguments.of("Leading Hyphen", "a-b-c", true),
+                Arguments.of("Leading Hyphen", "___", true),
                 Arguments.of("Leading Digit", "1fish2fish3fishbluefish", false)
         );
     }
@@ -36,6 +39,8 @@ public class LexerTests {
     private static Stream<Arguments> testInteger() {
         return Stream.of(
                 Arguments.of("Single Digit", "1", true),
+                Arguments.of("Single Digit", "+123", true),
+                Arguments.of("Single Digit", "023", true),
                 Arguments.of("Decimal", "123.456", false),
                 Arguments.of("Signed Decimal", "-1.0", false),
                 Arguments.of("Trailing Decimal", "1.", false),
@@ -55,6 +60,7 @@ public class LexerTests {
                 Arguments.of("Multiple Digits", "123.456", true),
                 Arguments.of("Negative Decimal", "-1.0", true),
                 Arguments.of("Trailing Decimal", "1.", false),
+                Arguments.of("Trailing Decimal", "007.0", true),
                 Arguments.of("Leading Decimal", ".5", false)
         );
     }
@@ -87,8 +93,8 @@ public class LexerTests {
                 Arguments.of("Empty", "\"s\"", true),
                 Arguments.of("Alphabetic", "\"abc\"", true),
                 Arguments.of("Newline Escape", "\"Hello,\\nWorld\"", true),
-                //False
-                Arguments.of("Unterminated", "\"unterminated", false),
+                //False "!@#$%^&*()"
+                Arguments.of("Unterminated", "\"!@#$%^&*()\"", true),
                 Arguments.of("Unterminated", "\"unterminated\\", false),
                 Arguments.of("Invalid Escape", "\"invalid\\escape\"", false)
         );
@@ -96,7 +102,6 @@ public class LexerTests {
 
     @ParameterizedTest
     @MethodSource
-    //TODO: Olivia
     void testOperator(String test, String input, boolean success) {
         //this test requires our lex() method, since that's where whitespace is handled.
         test(input, Arrays.asList(new Token(Token.Type.OPERATOR, input, 0)), success);
@@ -106,6 +111,7 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Character", "(", true),
                 Arguments.of("Comparison", "<=", true),
+                Arguments.of("Comparison", ">=", true),
                 Arguments.of("Space", " ", false),
                 Arguments.of("Tab", "\t", false)
         );
