@@ -63,6 +63,7 @@ public final class Lexer {
         System.out.println("szlscw;" + chars.get(0));
         if(peek(" ")){
             System.out.println("hi there pookie");
+            //lexSpace();
         } else if (peek("[A-Za-z_]")) {
             return lexIdentifier();
         }
@@ -94,6 +95,8 @@ public final class Lexer {
 //        change this
         return lexIdentifier();
     }
+
+//    public void lexSpace
 
     public Token lexIdentifier() {
 
