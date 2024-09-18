@@ -37,7 +37,10 @@ public final class Lexer {
                 match("\\s");
                 chars.skip();
             }
-            tokens.add(lexToken());
+
+            if (chars.has(0)) {
+                tokens.add(lexToken());
+            }
         }
         return tokens;
 
@@ -138,6 +141,7 @@ public final class Lexer {
     }
 
     public Token lexString() {
+        boolean lastEscape = false;
         match("\"");
         while (!peek("\"")) {
             if (!chars.has(0)) {
@@ -146,20 +150,28 @@ public final class Lexer {
             else
             if (peek("\\\\")) {
                 match("\\\\");
+                if (peek("n") || peek("r")) {
+                    lastEscape = true;
+                }
                 if (peek("[^bnrt'\"\\\\]")) {
                     throw new ParseException("Invalid Escape", chars.index);
                 }
                 else {
+
                     lexEscape();
                     match("[bnrt'\"\\\\]");
                 }
             }
             else if (peek("[^\"\\\\]")) {
                 match("[^\"\\\\]");
+                lastEscape = false;
             }
             else {
                 throw new ParseException("Invalid String", chars.index);
             }
+        }
+        if (lastEscape) {
+            throw new ParseException("Invalid Escape", chars.index);
         }
         match("\"");
         return chars.emit(Token.Type.STRING);
