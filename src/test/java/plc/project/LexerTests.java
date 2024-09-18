@@ -26,7 +26,10 @@ public class LexerTests {
                 Arguments.of("Leading Hyphen", "-five", false),
                 Arguments.of("Leading Hyphen", "a-b-c", true),
                 Arguments.of("Leading Hyphen", "___", true),
-                Arguments.of("Leading Digit", "1fish2fish3fishbluefish", false)
+                Arguments.of("Leading Digit", "1fish2fish3fishbluefish", false),
+                Arguments.of("Starting with underscore", "_variable", true),
+                Arguments.of("Alphanumeric with underscores", "var_123_name", true),
+                Arguments.of("Hyphen and underscore mix", "var--name", true)
         );
     }
 
@@ -44,7 +47,10 @@ public class LexerTests {
                 Arguments.of("Decimal", "123.456", false),
                 Arguments.of("Signed Decimal", "-1.0", false),
                 Arguments.of("Trailing Decimal", "1.", false),
-                Arguments.of("Leading Decimal", ".5", false)
+                Arguments.of("Leading Decimal", ".5", false),
+                Arguments.of("Negative integer", "-123", true),
+                Arguments.of("Leading zero", "00123", true),
+                Arguments.of("Number too large", "9007199254740993", true)
         );
     }
 
@@ -61,7 +67,10 @@ public class LexerTests {
                 Arguments.of("Negative Decimal", "-1.0", true),
                 Arguments.of("Trailing Decimal", "1.", false),
                 Arguments.of("Trailing Decimal", "007.0", true),
-                Arguments.of("Leading Decimal", ".5", false)
+                Arguments.of("Leading Decimal", ".5", false),
+                Arguments.of("Multiple decimals", "123.45.67", false),
+                Arguments.of("Negative leading zero", "-0.456", true),
+                Arguments.of("Long decimal", "1234567890.123456789", true)
         );
     }
 
@@ -76,7 +85,10 @@ public class LexerTests {
                 Arguments.of("Alphabetic", "\'c\'", true),
                 Arguments.of("Newline Escape", "\'\\n\'", true),
                 Arguments.of("Empty", "\'\'", false),
-                Arguments.of("Multiple", "\'abc\'", false)
+                Arguments.of("Multiple", "\'abc\'", false),
+                Arguments.of("Escape backslash", "'\\\\'", true),
+                Arguments.of("Invalid escape", "'\\x'", false),
+                Arguments.of("Valid escape newline", "'\\n'", true)
         );
     }
 
@@ -96,7 +108,10 @@ public class LexerTests {
                 //False "!@#$%^&*()"
                 Arguments.of("Unterminated", "\"!@#$%^&*()\"", true),
                 Arguments.of("Unterminated", "\"unterminated\\", false),
-                Arguments.of("Invalid Escape", "\"invalid\\escape\"", false)
+                Arguments.of("Invalid Escape", "\"invalid\\escape\"", false),
+                Arguments.of("Empty string with escape", "\"\\n\"", true),
+                Arguments.of("Multiline string", "\"Hello\nWorld\"", false),
+                Arguments.of("Escaped double quote", "\"\\\"\"", true)
         );
     }
 
@@ -113,7 +128,11 @@ public class LexerTests {
                 Arguments.of("Comparison", "<=", true),
                 Arguments.of("Comparison", ">=", true),
                 Arguments.of("Space", " ", false),
-                Arguments.of("Tab", "\t", false)
+                Arguments.of("Tab", "\t", false),
+                Arguments.of("Plus sign", "+", true),
+                Arguments.of("Invalid operator", "=>", false),
+                Arguments.of("Asterisk", "*", true),
+                Arguments.of("Ampersand", "&", true)
         );
     }
 
@@ -139,6 +158,24 @@ public class LexerTests {
                         new Token(Token.Type.STRING, "\"Hello, World!\"", 6),
                         new Token(Token.Type.OPERATOR, ")", 21),
                         new Token(Token.Type.OPERATOR, ";", 22)
+                )),
+                Arguments.of("Complex expression", "LET a = 3 + (2 * 5);", Arrays.asList(
+                        new Token(Token.Type.IDENTIFIER, "LET", 0),
+                        new Token(Token.Type.IDENTIFIER, "a", 4),
+                        new Token(Token.Type.OPERATOR, "=", 6),
+                        new Token(Token.Type.INTEGER, "3", 8),
+                        new Token(Token.Type.OPERATOR, "+", 10),
+                        new Token(Token.Type.OPERATOR, "(", 12),
+                        new Token(Token.Type.INTEGER, "2", 13),
+                        new Token(Token.Type.OPERATOR, "*", 15),
+                        new Token(Token.Type.INTEGER, "5", 17),
+                        new Token(Token.Type.OPERATOR, ")", 18),
+                        new Token(Token.Type.OPERATOR, ";", 19)
+                )),
+                Arguments.of("Unclosed string with operator", "\"unterminated + 1", Arrays.asList(
+                        new Token(Token.Type.STRING, "\"unterminated", 0),
+                        new Token(Token.Type.OPERATOR, "+", 14),
+                        new Token(Token.Type.INTEGER, "1", 16)
                 ))
         );
     }

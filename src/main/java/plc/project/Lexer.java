@@ -54,16 +54,12 @@ public final class Lexer {
      * @return
      */
     public Token lexToken() {
-        //This method needs to identify what type of token is going to be created.
-        //It needs to be called from lex.
-        if(!chars.has(0)){ //If the string is empty, needs a bit of testing tho
-            //System.out.println("empty String!!!"); //TODO: TESTING
-            throw new ParseException("Invalid Escape", chars.index);
+
+        if (!chars.has(0)){
+            throw new ParseException("Unexpected end of Input", chars.index);
         }
-        System.out.println("szlscw;" + chars.get(0));
-        if(peek(" ")){
-            System.out.println("hi there pookie");
-            //lexSpace();
+        if (peek(" ")){
+            throw new ParseException("Unexpected space", chars.index);
         } else if (peek("[A-Za-z_]")) {
             return lexIdentifier();
         }
@@ -77,37 +73,20 @@ public final class Lexer {
             return lexCharacter();
         }
         else if (peek("\"")) {
-            //System.out.println("\"<--");
-            //System.out.println(chars.get(0));
             return lexString();
-        }
-        else if(peek(" ") || chars.get(0) == ' '){
-            //System.out.println("space");
-            return lexEscape();
         }
         //TODO: test this as I believe we already catch white space, but this could be faulty.
         else {
-//            System.out.println("hehehe");
-            //System.out.println(chars.get(0));
             return lexOperator();
         }
-
-//        change this
-        return lexIdentifier();
     }
 
-//    public void lexSpace
 
     public Token lexIdentifier() {
-
         match("[A-Za-z_]");
         while (peek("[A-Za-z0-9_-]")) {
-            System.out.println(chars.get(0));
             match("[A-Za-z0-9_-]");
-//            System.out.println(chars.get(0));
-            //System.out.println("//System.out.println(chars.get(0) == ' ');");
         }
-//        System.out.println(chars.get(0));
         return chars.emit(Token.Type.IDENTIFIER);
     }
 
@@ -115,14 +94,11 @@ public final class Lexer {
         if (peek ("[+-]")) {
             match("[+-]");
         }
-        else if (peek ("[0-9]")) {
-            match("[0-9]");
-        }
         while (peek("[0-9]")) {
             match("[0-9]");
         }
         if (peek("\\.", "[0-9]")) {
-            match(".");
+            match("\\.");
             while (peek("[0-9]")) {
                 match("[0-9]");
             }
@@ -131,7 +107,8 @@ public final class Lexer {
         return chars.emit(Token.Type.INTEGER);
     }
 
-    //TODO: I need to make string and character accept escapes.
+
+    //TODO: I am unsure how we should be handling /r and /n(its given as a valid example but stated to not be valid.)
     public Token lexCharacter() {
         match("'");
         if (peek("\\\\")) {
@@ -139,107 +116,67 @@ public final class Lexer {
             if (peek("[^bnrt'\"\\\\]")) {
                 throw new ParseException("Invalid Escape", chars.index);
             }
-            //we don't need any other checks here right?
             else {
                 lexEscape();
                 match("[bnrt'\"\\\\]");
-                match("'");
-                return chars.emit(Token.Type.CHARACTER);
             }
         }
-        else if (peek("'")) //empty
-        {
+        else if (peek("'")) {
             throw new ParseException("Empty Character", chars.index);
         }
-        else if (peek(".", "[^']")) //TODO: needs to be tested if I can just say not "'".
-        {
-            throw new ParseException("Invalid Character", chars.index);
-        }
-        else //I don't need any more checks right?
-        {
+        else {
             match(".");
+        }
+        if (peek("'")) {
             match("'");
             return chars.emit(Token.Type.CHARACTER);
         }
+        else {
+            throw new ParseException("Improper Character", chars.index);
+        }
+
     }
 
     public Token lexString() {
-//        throw new ParseException("Invalid Character", chars.index);
         match("\"");
-        while(peek("[^\"]")){
-            if(chars.get(0) == '\\'){
-                if(!chars.has(1)){
-                    throw new ParseException("Invalid String", chars.index);
-                }
-                if(chars.get(1) == 'n' || chars.get(1) == 't' || chars.get(1) == 'b' || chars.get(1) == '\"' || chars.get(1) == 'r' || chars.get(1) == '\\') {
-
-                }else{
-                    throw new ParseException("Invalid String", chars.index);
-                }
-
-
+        while (!peek("\"")) {
+            if (!chars.has(0)) {
+                throw new ParseException("Unterminated String", chars.index);
             }
-
-            match(".");
+            else
+            if (peek("\\\\")) {
+                match("\\\\");
+                if (peek("[^bnrt'\"\\\\]")) {
+                    throw new ParseException("Invalid Escape", chars.index);
+                }
+                else {
+                    lexEscape();
+                    match("[bnrt'\"\\\\]");
+                }
+            }
+            else if (peek("[^\"\\\\]")) {
+                match("[^\"\\\\]");
+            }
+            else {
+                throw new ParseException("Invalid String", chars.index);
+            }
         }
-
-        if(peek("\"")){
-            match("\"");
-        }else{
-            throw new ParseException("Invalid String", chars.index);
-        }
-
-//        match("\"");
+        match("\"");
         return chars.emit(Token.Type.STRING);
     }
 
-    public Token lexEscape() {
-
-        if(chars.get(0) ==' '){
-            match(".");
-            return chars.emit(Token.Type.IDENTIFIER);
-        }
-        return null;
+    public void lexEscape() {
+        //TODO: unsure of proper usage for this method.
     }
 
     public Token lexOperator() {
-//        //System.out.println(chars.get(0) + " | " + chars.get(1));
-        //System.out.println(peek("<"));
-
-        if(chars.has(1)){
-            if(chars.get(1) == '=' && peek("[=!><]")){
-//                //System.out.println(chars.get(0) + " | " + chars.get(1));
-//                //System.out.println("in here!@@");
-
-                match(String.valueOf(chars.get(0)));
-                match("=");
-
-                return chars.emit(Token.Type.OPERATOR);
-            }
+        if (peek("[!=><]", "=")) {
+            match("[!=><]", "=");
+            return chars.emit(Token.Type.OPERATOR);
+        } else {
+            match(".");
+            return chars.emit(Token.Type.OPERATOR);
         }
-        match(".");
-
-//        if (peek("<" + "=")) {
-//            match("<" + "=");
-//            return chars.emit(Token.Type.OPERATOR);
-//        }
-//        else if (peek(">=")) {
-//            match(">=");
-//            return chars.emit(Token.Type.OPERATOR);
-//        }
-//        else if (peek("==")) {
-//            match("==");
-//            return chars.emit(Token.Type.OPERATOR);
-//        }
-//        else if (peek("!=")) {
-//            match("!=");
-//            return chars.emit (Token.Type.OPERATOR);
-//        }
-//        else {
-//            match("[^\\w\\s]");
-//            return chars.emit(Token.Type.OPERATOR);
-//        }
-        return chars.emit(Token.Type.OPERATOR);
     }
 
     public void skip(){
