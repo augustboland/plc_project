@@ -40,6 +40,8 @@ public final class Parser {
                 throw new ParseException("Expected LET or DEF", tokens.get(0).getIndex());
             }
         }
+
+        return new Ast.Source(fields, methods);
     }
 
     /**
@@ -135,42 +137,116 @@ public final class Parser {
      * Parses the {@code expression} rule.
      */
     public Ast.Expr parseExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        return parseLogicalExpression();
     }
 
     /**
      * Parses the {@code logical-expression} rule.
      */
     public Ast.Expr parseLogicalExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expr recurse = parseEqualityExpression();
+        String operator;
+        //The above should match on everything I believe so we know need to handle 0+ comparisons and expressions.
+        while (peek("AND", "OR")) {
+            if (peek("AND")) {
+                operator = "AND";
+                match("AND");
+                recurse = new Ast.Expr.Binary(operator, recurse, parseEqualityExpression());
+            } else {
+                operator = "OR";
+                match("OR");
+                recurse = new Ast.Expr.Binary(operator, recurse, parseEqualityExpression());
+            }
+
+        }
+
+        return recurse;
+
     }
 
     /**
      * Parses the {@code equality-expression} rule.
      */
     public Ast.Expr parseEqualityExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        //Base case
+        Ast.Expr recurse = parseAdditiveExpression();
+        //recurse of a kind
+        while (peek("<", "<=", ">", ">=", "==", "!=")) {
+            if (peek("<")) {
+                match("<");
+                recurse = new Ast.Expr.Binary("<", recurse, parseAdditiveExpression());
+            }
+            else if (peek("<=")) {
+                match("<=");
+                recurse = new Ast.Expr.Binary("<=", recurse, parseAdditiveExpression());
+            }
+            else if (peek(">")) {
+                match(">");
+                recurse = new Ast.Expr.Binary(">", recurse, parseAdditiveExpression());
+            }
+            else if (peek(">=")) {
+                match(">=");
+                recurse = new Ast.Expr.Binary(">=", recurse, parseAdditiveExpression());
+            }
+            else if (peek("==")) {
+                match("==");
+                recurse = new Ast.Expr.Binary("==", recurse, parseAdditiveExpression());
+            }
+            else if (peek("!=")) {
+                match("!=");
+                recurse = new Ast.Expr.Binary("!=", recurse, parseAdditiveExpression());
+            }
+        }
+
+        return recurse;
     }
 
     /**
      * Parses the {@code additive-expression} rule.
      */
     public Ast.Expr parseAdditiveExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expr recursive = parseMultiplicativeExpression();
+        while (peek("+", "-")) {
+            if (peek("+")) {
+                match("+");
+                recursive = new Ast.Expr.Binary("+", recursive, parseMultiplicativeExpression());
+            } else {
+                match("-");
+                recursive = new Ast.Expr.Binary("-", recursive, parseMultiplicativeExpression());
+            }
+        }
+        return recursive;
     }
 
     /**
      * Parses the {@code multiplicative-expression} rule.
      */
     public Ast.Expr parseMultiplicativeExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expr recursive = parseSecondaryExpression();
+        while (peek("*", "/")) {
+            if (peek("*")) {
+                match("*");
+                recursive = new Ast.Expr.Binary("*", recursive, parseSecondaryExpression());
+            } else {
+                match("/");
+                recursive = new Ast.Expr.Binary("/", recursive, parseSecondaryExpression());
+            }
+        }
+        return recursive;
     }
 
     /**
      * Parses the {@code secondary-expression} rule.
      */
     public Ast.Expr parseSecondaryExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expr recursive = parsePrimaryExpression();
+        while (peek(".")) {
+            match(".");
+            if (!peek(Token.Type.IDENTIFIER)) {
+                throw new ParseException("Expected IDENTIFIER", tokens.get(0).getIndex());
+            }
+
+        }
     }
 
     /**
