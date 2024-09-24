@@ -1,5 +1,6 @@
 package plc.project;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -27,7 +28,17 @@ public final class Parser {
      * Parses the {@code source} rule.
      */
     public Ast.Source parseSource() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        List<Ast.Field> fields = new ArrayList<>();
+        List<Ast.Method> methods = new ArrayList<>();
+        while (tokens.has(0)) {
+            if (peek("LET")) {
+                fields.add(parseField());
+            } else if (peek("DEF")) {
+                methods.add(parseMethod());
+            } else {
+                throw new ParseException("Expected LET or DEF", tokens.get(0).getIndex());
+            }
+        }
     }
 
     /**
@@ -163,7 +174,25 @@ public final class Parser {
      * {@code peek(Token.Type.IDENTIFIER)} and {@code peek("literal")}.
      */
     private boolean peek(Object... patterns) {
-        throw new UnsupportedOperationException(); //TODO (in lecture)
+        for (int i = 0; i < patterns.length; i++) {
+            if (!tokens.has(i)) {
+                return false;
+            }
+             else if (patterns[i] instanceof Token.Type) {
+                 if (patterns[i] != tokens.get(i).getType()) {
+                     return false;
+                 }
+            }
+                else if (patterns[i] instanceof String) {
+                    if (!patterns[i].equals(tokens.get(i).getLiteral())) {
+                        return false;
+                    }
+                }
+                else {
+                    throw new AssertionError("Invalid pattern object: " + patterns[i].getClass());
+            }
+        }
+        return true;
     }
 
     /**
@@ -171,7 +200,14 @@ public final class Parser {
      * and advances the token stream.
      */
     private boolean match(Object... patterns) {
-        throw new UnsupportedOperationException(); //TODO (in lecture)
+        boolean peek = peek(patterns);
+
+        if (peek) {
+            for (int i = 0; i < patterns.length; i++ ) {
+                tokens.advance();
+            }
+        }
+        return peek;
     }
 
     private static final class TokenStream {
