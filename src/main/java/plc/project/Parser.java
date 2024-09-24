@@ -2,6 +2,7 @@ package plc.project;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The parser takes the sequence of tokens emitted by the lexer and turns that
@@ -46,7 +47,26 @@ public final class Parser {
      * next tokens start a field, aka {@code LET}.
      */
     public Ast.Field parseField() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match("LET");
+        Optional<Ast.Expr> value = Optional.empty();
+        if (peek(Token.Type.IDENTIFIER)) {
+            String name = tokens.get(0).getLiteral();
+            match(Token.Type.IDENTIFIER);
+            if (peek("=")) {
+                match("=");
+                Ast.Expr expression = parseExpression();
+                value = Optional.of(expression);
+            }
+            if (peek(";")) {
+                match(";");
+                return new Ast.Field(name, value);
+            } else {
+                throw new ParseException("Expected ;", tokens.get(0).getIndex());
+            }
+        }
+        else {
+            throw new ParseException("Expected IDENTIFIER", tokens.get(0).getIndex());
+        }
     }
 
     /**
