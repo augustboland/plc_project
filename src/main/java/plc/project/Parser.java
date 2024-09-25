@@ -314,7 +314,30 @@ public final class Parser {
                 return new Ast.Expr.Function(Optional.of(new Ast.Expr.Literal(name)), name, expressions);
             }
         }
+        else if(peek("\b(NIL|TRUE|FALSE)\b")) {
+            if (peek("NIL")) {
+                match("NIL");
+                return new Ast.Expr.Literal(null);
+            }
+            else if (peek("TRUE")) {
+                match("TRUE");
+                return new Ast.Expr.Literal(true);
+            }
+            else {
+                match("FALSE");
+                return new Ast.Expr.Literal(false);
+            }
+        }
+        else if (peek(Token.Type.IDENTIFIER)) {
+            String literal = tokens.get(0).getLiteral();
+             return new Ast.Expr.Literal(literal);
+        }
+        else if (peek(Token.Type.INTEGER)) {
+
+        }
+
     }
+
 
     /**
      * As in the lexer, returns {@code true} if the current sequence of tokens
