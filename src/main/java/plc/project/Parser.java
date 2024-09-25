@@ -21,6 +21,8 @@ public final class Parser {
 
     private final TokenStream tokens;
 
+    //TODO: I need to change the way I use peek when I want to check for multiple options.
+    //I believe I should be using Regex instead of a ',' becasue that chekcs for multiple things in a row.
     public Parser(List<Token> tokens) {
         this.tokens = new TokenStream(tokens);
     }
@@ -147,7 +149,7 @@ public final class Parser {
         Ast.Expr recurse = parseEqualityExpression();
         String operator;
         //The above should match on everything I believe so we know need to handle 0+ comparisons and expressions.
-        while (peek("AND", "OR")) {
+        while (peek("\b(AND|OR)\b")) {
             if (peek("AND")) {
                 operator = "AND";
                 match("AND");
@@ -171,7 +173,7 @@ public final class Parser {
         //Base case
         Ast.Expr recurse = parseAdditiveExpression();
         //recurse of a kind
-        while (peek("<", "<=", ">", ">=", "==", "!=")) {
+        while (peek("<=|>=|==|!=|<|>")) {
             if (peek("<")) {
                 match("<");
                 recurse = new Ast.Expr.Binary("<", recurse, parseAdditiveExpression());
@@ -206,7 +208,7 @@ public final class Parser {
      */
     public Ast.Expr parseAdditiveExpression() throws ParseException {
         Ast.Expr recursive = parseMultiplicativeExpression();
-        while (peek("+", "-")) {
+        while (peek("+|-")) {
             if (peek("+")) {
                 match("+");
                 recursive = new Ast.Expr.Binary("+", recursive, parseMultiplicativeExpression());
@@ -223,7 +225,7 @@ public final class Parser {
      */
     public Ast.Expr parseMultiplicativeExpression() throws ParseException {
         Ast.Expr recursive = parseSecondaryExpression();
-        while (peek("*", "/")) {
+        while (peek("*|/")) {
             if (peek("*")) {
                 match("*");
                 recursive = new Ast.Expr.Binary("*", recursive, parseSecondaryExpression());
@@ -278,7 +280,40 @@ public final class Parser {
      * not strictly necessary.
      */
     public Ast.Expr parsePrimaryExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        //If it's an expression in (
+        if (peek("(")) {
+            match("(");
+            Ast.Expr toReturn = parseExpression();
+            if (peek(")")) {
+                match(")");
+                return toReturn;
+            } else {
+                throw new ParseException("Expected )", tokens.get(0).getIndex());
+            }
+        }
+        //If it's an identifier
+        else if (peek(Token.Type.IDENTIFIER)) {
+            String name = tokens.get(0).getLiteral();
+            match(Token.Type.IDENTIFIER);
+            if (!peek("(")) {
+                return new Ast.Expr.Literal(name);
+            }
+            else {
+                List<Ast.Expr> expressions = new ArrayList<>();
+                match("(");
+                while (!peek(")")) {
+                    expressions.add(parseExpression());
+                    if (peek(",", ")")) {
+                        throw new ParseException("Can't end call with ,", tokens.get(0).getIndex());
+                    }
+                    if (peek(",")) {
+                        match(",");
+                    }
+                }
+                match(")");
+                return new Ast.Expr.Function(Optional.of(new Ast.Expr.Literal(name)), name, expressions);
+            }
+        }
     }
 
     /**
