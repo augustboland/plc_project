@@ -245,8 +245,30 @@ public final class Parser {
             if (!peek(Token.Type.IDENTIFIER)) {
                 throw new ParseException("Expected IDENTIFIER", tokens.get(0).getIndex());
             }
+            String name = tokens.get(0).getLiteral();
+            match(Token.Type.IDENTIFIER);
+            //TODO: I need to determine if it's an access or a call before doing this.
 
+            //If it's a call.
+            if (peek("(")) {
+                List<Ast.Expr> expressions = new ArrayList<>();
+                match("(");
+                while (!peek(")")) {
+                    expressions.add(parseExpression());
+                    if (peek(",", ")")) {
+                        throw new ParseException("Can't end call with ,", tokens.get(0).getIndex());
+                    }
+                    if (peek(",")) {
+                        match(",");
+                    }
+                }
+                match(")");
+                recursive = new Ast.Expr.Function(Optional.of(recursive), name, expressions);
+            }
+            //It's an access.
+            recursive = new Ast.Expr.Access(Optional.of(recursive), name);
         }
+        return recursive;
     }
 
     /**
