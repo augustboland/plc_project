@@ -333,7 +333,27 @@ public final class Parser {
              return new Ast.Expr.Literal(literal);
         }
         else if (peek(Token.Type.INTEGER)) {
-
+            int literal = Integer.parseInt(tokens.get(0).getLiteral());
+            match(Token.Type.INTEGER);
+            return new Ast.Expr.Literal(literal);
+        }
+        else if (peek(Token.Type.DECIMAL)) {
+            double literal = Double.parseDouble(tokens.get(0).getLiteral());
+            match(Token.Type.DECIMAL);
+            return new Ast.Expr.Literal(literal);
+        }
+        else if (peek(Token.Type.CHARACTER)) {
+            char literal = tokens.get(0).getLiteral().charAt(0);
+            match(Token.Type.CHARACTER);
+            return new Ast.Expr.Literal(literal);
+        }
+        else if (peek(Token.Type.STRING)) {
+            String literal = tokens.get(0).getLiteral();
+            match(Token.Type.STRING);
+            return new Ast.Expr.Literal(literal);
+        }
+        else {
+            throw new ParseException("Expected IDENTIFIER, INTEGER, DECIMAL, CHARACTER, STRING, NIL, TRUE, or FALSE", tokens.get(0).getIndex());
         }
 
     }
