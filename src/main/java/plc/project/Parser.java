@@ -190,7 +190,29 @@ public final class Parser {
      * {@code IF}.
      */
     public Ast.Stmt.If parseIfStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match("IF");
+        Ast.Expr condition = parseExpression();
+        if (!peek("DO")) {
+            throw new ParseException("Expected DO", tokens.get(0).getIndex());
+        }
+        match("DO");
+        List<Ast.Stmt> statements = new ArrayList<>();
+        while (!peek("ELSE") && !peek("END")) {
+            statements.add(parseStatement());
+        }
+
+        if (peek("ELSE")) {
+            match("ELSE");
+            List<Ast.Stmt> elseStatements = new ArrayList<>();
+            while (!peek("END")) {
+                elseStatements.add(parseStatement());
+            }
+            match("END");
+            return new Ast.Stmt.If(condition, statements, elseStatements);
+        }
+
+        match("END");
+        return new Ast.Stmt.If(condition, statements, new ArrayList<>());
     }
 
     /**
@@ -199,7 +221,33 @@ public final class Parser {
      * {@code FOR}.
      */
     public Ast.Stmt.For parseForStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match("FOR");
+
+        if (!peek(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Expected IDENTIFIER", tokens.get(0).getIndex());
+        }
+        String name = tokens.get(0).getLiteral();
+        match(Token.Type.IDENTIFIER);
+
+        if (!peek("IN")) {
+            throw new ParseException("Expected IN", tokens.get(0).getIndex());
+        }
+        match("IN");
+
+        Ast.Expr value = parseExpression();
+
+        if (!peek("DO")) {
+            throw new ParseException("Expected DO", tokens.get(0).getIndex());
+        }
+        match("DO");
+
+        List<Ast.Stmt> statements = new ArrayList<>();
+        while (!peek("END")) {
+            statements.add(parseStatement());
+        }
+
+        match("END");
+        return new Ast.Stmt.For(name, value, statements);
     }
 
     /**
@@ -208,7 +256,18 @@ public final class Parser {
      * {@code WHILE}.
      */
     public Ast.Stmt.While parseWhileStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match("WHILE");
+        Ast.Expr condition = parseExpression();
+        if (!peek("DO")) {
+            throw new ParseException("Expected DO", tokens.get(0).getIndex());
+        }
+        match("DO");
+        List<Ast.Stmt> statements = new ArrayList<>();
+        while (!peek("END")) {
+            statements.add(parseStatement());
+        }
+        match("END");
+        return new Ast.Stmt.While(condition, statements);
     }
 
     /**
@@ -217,7 +276,10 @@ public final class Parser {
      * {@code RETURN}.
      */
     public Ast.Stmt.Return parseReturnStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match("RETURN");
+        Ast.Expr value = parseExpression();
+        match(";");
+        return new Ast.Stmt.Return(value);
     }
 
     /**
