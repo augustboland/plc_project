@@ -80,7 +80,46 @@ public final class Parser {
      * next tokens start a method, aka {@code DEF}.
      */
     public Ast.Method parseMethod() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match("DEF");
+
+        if (!peek(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Expected IDENTIFIER", tokens.get(0).getIndex());
+        }
+        String name = tokens.get(0).getLiteral();
+        match(Token.Type.IDENTIFIER);
+        List<String> parameters = new ArrayList<>();
+        if (!peek("(")) {
+            throw new ParseException("Expected (", tokens.get(0).getIndex());
+        }
+        match("(");
+        while(!peek(")")) {
+            if (!peek(Token.Type.IDENTIFIER)) {
+                throw new ParseException("Expected IDENTIFIER", tokens.get(0).getIndex());
+            }
+            parameters.add(tokens.get(0).getLiteral());
+            match(Token.Type.IDENTIFIER);
+            if (peek(",", ")")) {
+                throw new ParseException("Can't end with ,", tokens.get(0).getIndex());
+            }
+            if (peek(",")) {
+                match(",");
+            }
+        }
+        match(")");
+
+        if (!peek("DO")) {
+            throw new ParseException("Expected DO", tokens.get(0).getIndex());
+        }
+
+        List<Ast.Stmt> statements = new ArrayList<>();
+        match("DO");
+        while (!peek("END")) {
+            statements.add(parseStatement());
+        }
+
+        match("END");
+
+        return new Ast.Method(name, parameters, statements);
     }
 
     /**
@@ -89,7 +128,32 @@ public final class Parser {
      * statement, then it is an expression/assignment statement.
      */
     public Ast.Stmt parseStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        if (peek("LET")) {
+            return parseDeclarationStatement();
+        } else if (peek("IF")) {
+            return parseIfStatement();
+        } else if (peek("FOR")) {
+            return parseForStatement();
+        } else if (peek("WHILE")) {
+            return parseWhileStatement();
+        } else if (peek("RETURN")) {
+            return parseReturnStatement();
+        } else if (peek(Token.Type.IDENTIFIER)) {
+            Ast.Expr expr = parseExpression();
+
+            if (peek("=")) {
+                match("=");
+
+                Ast.Expr value = parseExpression();
+                match(";");
+                return new Ast.Stmt.Assignment(expr, value);
+            }
+            match(";");
+            return new Ast.Stmt.Expression(expr);
+        }
+        else {
+            throw new ParseException("Expected LET, IF, FOR, WHILE, RETURN, or IDENTIFIER", tokens.get(0).getIndex());
+        }
     }
 
     /**
@@ -98,7 +162,26 @@ public final class Parser {
      * statement, aka {@code LET}.
      */
     public Ast.Stmt.Declaration parseDeclarationStatement() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        match("LET");
+
+        if (!peek(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Expected IDENTIFIER", tokens.get(0).getIndex());
+        }
+
+        String name = tokens.get(0).getLiteral();
+        match(Token.Type.IDENTIFIER);
+
+        if (!peek("=")) {
+            throw new ParseException("Expected =", tokens.get(0).getIndex());
+        }
+        Optional<Ast.Expr> value = Optional.empty();
+        if (peek("=")) {
+            match("=");
+            value = Optional.of(parseExpression());
+        }
+        match(";");
+
+        return new Ast.Stmt.Declaration(name, value);
     }
 
     /**
@@ -366,6 +449,7 @@ public final class Parser {
         }
 
     }
+    //This is taken from StackOverflow
     private String unescapeString(String input) {
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < input.length(); i++) {
@@ -373,14 +457,16 @@ public final class Parser {
             if (current == '\\' && i + 1 < input.length()) {
                 char next = input.charAt(i + 1);
                 switch (next) {
-                    case 'n': result.append('\n'); break;
-                    case 't': result.append('\t'); break;
-                    case 'r': result.append('\r'); break;
-                    case '\\': result.append('\\'); break;
-                    case '"': result.append('"'); break;
-                    default: result.append(next); break;
+                    case 'n': result.append('\n'); break; // Newline
+                    case 't': result.append('\t'); break; // Tab
+                    case 'r': result.append('\r'); break; // Carriage return
+                    case 'b': result.append('\b'); break; // Backspace
+                    case '\\': result.append('\\'); break; // Backslash
+                    case '"': result.append('"'); break; // Double quote
+                    case '\'': result.append('\''); break; // Single quote
+                    default: result.append('\\').append(next); break; // Invalid escape
                 }
-                i++;
+                i++; // Skip the next character as it's already processed
             } else {
                 result.append(current); // Regular character
             }
