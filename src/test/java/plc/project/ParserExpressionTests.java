@@ -23,10 +23,37 @@ final class ParserExpressionTests {
     @ParameterizedTest
     @MethodSource
     void testExpressionStatement(String test, List<Token> tokens, Ast.Stmt.Expression expected) {
-        test(tokens, expected, Parser::parseStatement);
+        test(tokens, null, Parser::parseStatement);
     }
 
     private static Stream<Arguments> testExpressionStatement() {
+        return Stream.of(
+                Arguments.of("Function Expression",
+                        Arrays.asList(
+                                //name();
+                                new Token(Token.Type.IDENTIFIER, "name", 0),
+                                new Token(Token.Type.OPERATOR, "(", 4),
+                                new Token(Token.Type.OPERATOR, ")", 5)
+                        ),
+                        new Ast.Stmt.Expression(new Ast.Expr.Function(Optional.empty(), "name", Arrays.asList()))
+                ),
+                Arguments.of("Function Expression",
+                        Arrays.asList(
+                                //name();
+                                new Token(Token.Type.IDENTIFIER, "f", 0)
+                        ),
+                        new Ast.Stmt.Expression(new Ast.Expr.Function(Optional.empty(), "f", Arrays.asList()))
+                )
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void testExpressionStatementTrue(String test, List<Token> tokens, Ast.Stmt.Expression expected) {
+        test(tokens, expected, Parser::parseStatement);
+    }
+
+    private static Stream<Arguments> testExpressionStatementTrue() {
         return Stream.of(
                 Arguments.of("Function Expression",
                         Arrays.asList(
@@ -136,6 +163,26 @@ final class ParserExpressionTests {
 
     @ParameterizedTest
     @MethodSource
+    void testGroupExpressionFalse(String test, List<Token> tokens, Ast.Expr.Group expected) {
+        test(tokens, null, Parser::parseExpression);
+    }
+
+    private static Stream<Arguments> testGroupExpressionFalse() {
+        return Stream.of(
+                Arguments.of("Grouped Variable",
+                        Arrays.asList(
+                                //(expr)
+                                new Token(Token.Type.OPERATOR, "(", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 1)
+//                                new Token(Token.Type.OPERATOR, ")", 5)
+                        ),
+                        new Ast.Expr.Group(new Ast.Expr.Access(Optional.empty(), "expr"))
+                )
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
     void testBinaryExpression(String test, List<Token> tokens, Ast.Expr.Binary expected) {
         test(tokens, expected, Parser::parseExpression);
     }
@@ -186,6 +233,29 @@ final class ParserExpressionTests {
                                 new Token(Token.Type.IDENTIFIER, "expr2", 8)
                         ),
                         new Ast.Expr.Binary("*",
+                                new Ast.Expr.Access(Optional.empty(), "expr1"),
+                                new Ast.Expr.Access(Optional.empty(), "expr2")
+                        )
+                )
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void testBinaryExpressionFalse(String test, List<Token> tokens, Ast.Expr.Binary expected) {
+        test(tokens, null, Parser::parseExpression);
+    }
+
+    private static Stream<Arguments> testBinaryExpressionFalse() {
+        return Stream.of(
+                Arguments.of("False",
+                        Arrays.asList(
+                                //expr1 AND expr2
+                                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                                new Token(Token.Type.IDENTIFIER, "AND", 6)
+
+                        ),
+                        new Ast.Expr.Binary("AND",
                                 new Ast.Expr.Access(Optional.empty(), "expr1"),
                                 new Ast.Expr.Access(Optional.empty(), "expr2")
                         )

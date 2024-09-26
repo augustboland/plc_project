@@ -145,11 +145,22 @@ public final class Parser {
                 match("=");
 
                 Ast.Expr value = parseExpression();
-                match(";");
-                return new Ast.Stmt.Assignment(expr, value);
+                if(peek(";")){
+                    match(";");
+                    return new Ast.Stmt.Assignment(expr, value);
+                }else{
+                    throw new ParseException("Needed a ; at the end", tokens.get(0).getIndex());
+                }
+//                return new Ast.Stmt.Assignment(expr, value);
             }
-            match(";");
-            return new Ast.Stmt.Expression(expr);
+
+            if(peek(";")){
+                match(";");
+                return new Ast.Stmt.Expression(expr);
+            }else{
+                System.out.println("hehehe");
+                throw new ParseException("Needed a ; at the end", 0);
+            }
         }
         else {
             throw new ParseException("Expected LET, IF, FOR, WHILE, RETURN, or IDENTIFIER", tokens.get(0).getIndex());
@@ -424,7 +435,7 @@ public final class Parser {
                 match(")");
                 return new Ast.Expr.Group(toReturn);
             } else {
-                throw new ParseException("Expected )", tokens.get(0).getIndex());
+                throw new ParseException("Expected )", 0);
             }
         }
         else if (peek("NIL")) {
