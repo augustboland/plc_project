@@ -1,5 +1,7 @@
 package plc.project;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -147,23 +149,16 @@ public final class Parser {
      */
     public Ast.Expr parseLogicalExpression() throws ParseException {
         Ast.Expr recurse = parseEqualityExpression();
-        String operator;
-        //The above should match on everything I believe so we know need to handle 0+ comparisons and expressions.
-        while (peek("\b(AND|OR)\b")) {
-            if (peek("AND")) {
-                operator = "AND";
-                match("AND");
-                recurse = new Ast.Expr.Binary(operator, recurse, parseEqualityExpression());
+        while (true) {
+            if (match("AND")) {
+                recurse = new Ast.Expr.Binary("AND", recurse, parseEqualityExpression());
+            } else if (match("OR")) {
+                recurse = new Ast.Expr.Binary("OR", recurse, parseEqualityExpression());
             } else {
-                operator = "OR";
-                match("OR");
-                recurse = new Ast.Expr.Binary(operator, recurse, parseEqualityExpression());
+                break;
             }
-
         }
-
         return recurse;
-
     }
 
     /**
@@ -173,30 +168,21 @@ public final class Parser {
         //Base case
         Ast.Expr recurse = parseAdditiveExpression();
         //recurse of a kind
-        while (peek("<=|>=|==|!=|<|>")) {
-            if (peek("<")) {
-                match("<");
+        while (true) {
+            if (match("<")) {
                 recurse = new Ast.Expr.Binary("<", recurse, parseAdditiveExpression());
-            }
-            else if (peek("<=")) {
-                match("<=");
+            } else if (match("<=")) {
                 recurse = new Ast.Expr.Binary("<=", recurse, parseAdditiveExpression());
-            }
-            else if (peek(">")) {
-                match(">");
+            } else if (match(">")) {
                 recurse = new Ast.Expr.Binary(">", recurse, parseAdditiveExpression());
-            }
-            else if (peek(">=")) {
-                match(">=");
+            } else if (match(">=")) {
                 recurse = new Ast.Expr.Binary(">=", recurse, parseAdditiveExpression());
-            }
-            else if (peek("==")) {
-                match("==");
+            } else if (match("==")) {
                 recurse = new Ast.Expr.Binary("==", recurse, parseAdditiveExpression());
-            }
-            else if (peek("!=")) {
-                match("!=");
+            } else if (match("!=")) {
                 recurse = new Ast.Expr.Binary("!=", recurse, parseAdditiveExpression());
+            } else {
+                break;
             }
         }
 
@@ -208,30 +194,33 @@ public final class Parser {
      */
     public Ast.Expr parseAdditiveExpression() throws ParseException {
         Ast.Expr recursive = parseMultiplicativeExpression();
-        while (peek("+|-")) {
-            if (peek("+")) {
-                match("+");
-                recursive = new Ast.Expr.Binary("+", recursive, parseMultiplicativeExpression());
+        while (true) {
+            if (match("+")) {
+                Ast.Expr right = parseMultiplicativeExpression();
+                recursive = new Ast.Expr.Binary("+", recursive, right);
+            } else if (match("-")) {
+                Ast.Expr right = parseMultiplicativeExpression();
+                recursive = new Ast.Expr.Binary("-", recursive, right);
             } else {
-                match("-");
-                recursive = new Ast.Expr.Binary("-", recursive, parseMultiplicativeExpression());
+                break;
             }
         }
         return recursive;
     }
-
     /**
      * Parses the {@code multiplicative-expression} rule.
      */
     public Ast.Expr parseMultiplicativeExpression() throws ParseException {
         Ast.Expr recursive = parseSecondaryExpression();
-        while (peek("*|/")) {
-            if (peek("*")) {
-                match("*");
-                recursive = new Ast.Expr.Binary("*", recursive, parseSecondaryExpression());
+        while (true) {
+            if (match("*")) {
+                Ast.Expr right = parseSecondaryExpression();
+                recursive = new Ast.Expr.Binary("*", recursive, right);
+            } else if (match("/")) {
+                Ast.Expr right = parseSecondaryExpression();
+                recursive = new Ast.Expr.Binary("/", recursive, right);
             } else {
-                match("/");
-                recursive = new Ast.Expr.Binary("/", recursive, parseSecondaryExpression());
+                break;
             }
         }
         return recursive;
@@ -267,8 +256,10 @@ public final class Parser {
                 match(")");
                 recursive = new Ast.Expr.Function(Optional.of(recursive), name, expressions);
             }
-            //It's an access.
-            recursive = new Ast.Expr.Access(Optional.of(recursive), name);
+            else {
+                //It's an access.
+                recursive = new Ast.Expr.Access(Optional.of(recursive), name);
+            }
         }
         return recursive;
     }
@@ -286,17 +277,73 @@ public final class Parser {
             Ast.Expr toReturn = parseExpression();
             if (peek(")")) {
                 match(")");
-                return toReturn;
+                return new Ast.Expr.Group(toReturn);
             } else {
                 throw new ParseException("Expected )", tokens.get(0).getIndex());
             }
+        }
+        else if (peek("NIL")) {
+                match("NIL");
+                return new Ast.Expr.Literal(null);
+            }
+        else if (peek("TRUE")) {
+                match("TRUE");
+                return new Ast.Expr.Literal(true);
+            }
+        else if (peek("FALSE")) {
+                match("FALSE");
+                return new Ast.Expr.Literal(false);
+            }
+        else if (peek(Token.Type.IDENTIFIER)) {
+            String literal = tokens.get(0).getLiteral();
+            match(Token.Type.IDENTIFIER);
+            if (peek("(")) {
+                List<Ast.Expr> expressions = new ArrayList<>();
+                match("(");
+                while (!peek(")")) {
+                    expressions.add(parseExpression());
+                    if (peek(",", ")")) {
+                        throw new ParseException("Can't end call with ,", tokens.get(0).getIndex());
+                    }
+                    if (peek(",")) {
+                        match(",");
+                    }
+                }
+                match(")");
+                return new Ast.Expr.Function(Optional.empty(), literal, expressions);
+            }
+            else {
+                return new Ast.Expr.Access(Optional.empty(), literal);
+            }
+        }
+        else if (peek(Token.Type.INTEGER)) {
+            String literal = tokens.get(0).getLiteral();
+            match(Token.Type.INTEGER);
+            return new Ast.Expr.Literal(new BigInteger(literal));
+        }
+        else if (peek(Token.Type.DECIMAL)) {
+            String literal = tokens.get(0).getLiteral();
+            match(Token.Type.DECIMAL);
+            return new Ast.Expr.Literal(new BigDecimal(literal));
+        }
+        else if (peek(Token.Type.CHARACTER)) {
+            char literal = tokens.get(0).getLiteral().charAt(1);
+            match(Token.Type.CHARACTER);
+            return new Ast.Expr.Literal(literal);
+        }
+        else if (peek(Token.Type.STRING)) {
+            String literal = tokens.get(0).getLiteral();
+            literal = literal.substring(1, literal.length() - 1);
+            literal = unescapeString(literal);
+            match(Token.Type.STRING);
+            return new Ast.Expr.Literal(literal);
         }
         //If it's an identifier
         else if (peek(Token.Type.IDENTIFIER)) {
             String name = tokens.get(0).getLiteral();
             match(Token.Type.IDENTIFIER);
             if (!peek("(")) {
-                return new Ast.Expr.Literal(name);
+                return new Ast.Expr.Access(Optional.empty(), name);
             }
             else {
                 List<Ast.Expr> expressions = new ArrayList<>();
@@ -314,50 +361,32 @@ public final class Parser {
                 return new Ast.Expr.Function(Optional.of(new Ast.Expr.Literal(name)), name, expressions);
             }
         }
-        else if(peek("\b(NIL|TRUE|FALSE)\b")) {
-            if (peek("NIL")) {
-                match("NIL");
-                return new Ast.Expr.Literal(null);
-            }
-            else if (peek("TRUE")) {
-                match("TRUE");
-                return new Ast.Expr.Literal(true);
-            }
-            else {
-                match("FALSE");
-                return new Ast.Expr.Literal(false);
-            }
-        }
-        else if (peek(Token.Type.IDENTIFIER)) {
-            String literal = tokens.get(0).getLiteral();
-             return new Ast.Expr.Literal(literal);
-        }
-        else if (peek(Token.Type.INTEGER)) {
-            int literal = Integer.parseInt(tokens.get(0).getLiteral());
-            match(Token.Type.INTEGER);
-            return new Ast.Expr.Literal(literal);
-        }
-        else if (peek(Token.Type.DECIMAL)) {
-            double literal = Double.parseDouble(tokens.get(0).getLiteral());
-            match(Token.Type.DECIMAL);
-            return new Ast.Expr.Literal(literal);
-        }
-        else if (peek(Token.Type.CHARACTER)) {
-            char literal = tokens.get(0).getLiteral().charAt(0);
-            match(Token.Type.CHARACTER);
-            return new Ast.Expr.Literal(literal);
-        }
-        else if (peek(Token.Type.STRING)) {
-            String literal = tokens.get(0).getLiteral();
-            match(Token.Type.STRING);
-            return new Ast.Expr.Literal(literal);
-        }
         else {
             throw new ParseException("Expected IDENTIFIER, INTEGER, DECIMAL, CHARACTER, STRING, NIL, TRUE, or FALSE", tokens.get(0).getIndex());
         }
 
     }
-
+    private String unescapeString(String input) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < input.length(); i++) {
+            char current = input.charAt(i);
+            if (current == '\\' && i + 1 < input.length()) {
+                char next = input.charAt(i + 1);
+                switch (next) {
+                    case 'n': result.append('\n'); break;
+                    case 't': result.append('\t'); break;
+                    case 'r': result.append('\r'); break;
+                    case '\\': result.append('\\'); break;
+                    case '"': result.append('"'); break;
+                    default: result.append(next); break;
+                }
+                i++;
+            } else {
+                result.append(current); // Regular character
+            }
+        }
+        return result.toString();
+    }
 
     /**
      * As in the lexer, returns {@code true} if the current sequence of tokens
