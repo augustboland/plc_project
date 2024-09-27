@@ -518,7 +518,7 @@ public final class Parser {
             }
         }
         else {
-            throw new ParseException("Expected IDENTIFIER, INTEGER, DECIMAL, CHARACTER, STRING, NIL, TRUE, or FALSE", tokens.get(0).getIndex());
+            throw new ParseException("Expected IDENTIFIER, INTEGER, DECIMAL, CHARACTER, STRING, NIL, TRUE, or FALSE", 0);
         }
 
     }
