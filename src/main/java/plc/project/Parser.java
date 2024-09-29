@@ -158,7 +158,6 @@ public final class Parser {
                 match(";");
                 return new Ast.Stmt.Expression(expr);
             }else{
-                System.out.println("hehehe");
                 throw new ParseException("Needed a ; at the end", 0);
             }
         }
