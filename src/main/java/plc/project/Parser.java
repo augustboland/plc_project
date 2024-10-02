@@ -1,4 +1,5 @@
 package plc.project;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -19,57 +20,61 @@ import java.util.Optional;
  * to calling that functions.
  */
 public final class Parser {
+
     private final TokenStream tokens;
+
+    //TODO: I need to change the way I use peek when I want to check for multiple options.
+    //I believe I should be using Regex instead of a ',' becasue that chekcs for multiple things in a row.
     public Parser(List<Token> tokens) {
         this.tokens = new TokenStream(tokens);
-
     }
+
     /**
      * Parses the {@code source} rule.
      */
     public Ast.Source parseSource() throws ParseException {
         List<Ast.Field> fields = new ArrayList<>();
         List<Ast.Method> methods = new ArrayList<>();
-
-        while(tokens.has(0)){
-            if(peek("LET")){
-                //Field
+        while (tokens.has(0)) {
+            if (peek("LET")) {
                 fields.add(parseField());
-            }else if(peek("DEF")){
-                //Method
+            } else if (peek("DEF")) {
                 methods.add(parseMethod());
+            } else {
+                throw new ParseException("Expected LET or DEF", tokens.get(0).getIndex());
             }
         }
 
         return new Ast.Source(fields, methods);
     }
+
     /**
      * Parses the {@code field} rule. This method should only be called if the
      * next tokens start a field, aka {@code LET}.
      */
-    // LET identifier = expression;
-    // LET identifier;
     public Ast.Field parseField() throws ParseException {
         match("LET");
         Optional<Ast.Expr> value = Optional.empty();
-        if(peek(Token.Type.IDENTIFIER)){
+        if (peek(Token.Type.IDENTIFIER)) {
             String name = tokens.get(0).getLiteral();
             match(Token.Type.IDENTIFIER);
-
-            if(match("=")){ //LET xxx = qe; |
+            if (peek("=")) {
+                match("=");
                 Ast.Expr expression = parseExpression();
                 value = Optional.of(expression);
             }
-
-            if(match(";")){
+            if (peek(";")) {
+                match(";");
                 return new Ast.Field(name, value);
-            }else{
+            } else {
                 throw new ParseException("Expected ;", tokens.get(0).getIndex());
             }
-        } else{
+        }
+        else {
             throw new ParseException("Expected IDENTIFIER", tokens.get(0).getIndex());
         }
     }
+
     /**
      * Parses the {@code method} rule. This method should only be called if the
      * next tokens start a method, aka {@code DEF}.
@@ -116,6 +121,7 @@ public final class Parser {
 
         return new Ast.Method(name, parameters, statements);
     }
+
     /**
      * Parses the {@code statement} rule and delegates to the necessary method.
      * If the next tokens do not start a declaration, if, while, or return
@@ -135,9 +141,12 @@ public final class Parser {
         } else if (peek(Token.Type.IDENTIFIER)) {
             Ast.Expr expr = parseExpression();
 
-            if (match("=")) {
+            if (peek("=")) {
+                match("=");
+
                 Ast.Expr value = parseExpression();
-                if(match(";")){
+                if(peek(";")){
+                    match(";");
                     return new Ast.Stmt.Assignment(expr, value);
                 }else{
                     throw new ParseException("Needed a ; at the end", tokens.get(0).getIndex());
@@ -145,18 +154,18 @@ public final class Parser {
 //                return new Ast.Stmt.Assignment(expr, value);
             }
 
-            if(match(";")){
+            if(peek(";")){
+                match(";");
                 return new Ast.Stmt.Expression(expr);
             }else{
-                int end = tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length();
-//                System.out.println(end);
-                throw new ParseException("Needed a ; at the end", end);
+                throw new ParseException("Needed a ; at the end", 0);
             }
         }
         else {
             throw new ParseException("Expected LET, IF, FOR, WHILE, RETURN, or IDENTIFIER", tokens.get(0).getIndex());
         }
     }
+
     /**
      * Parses a declaration statement from the {@code statement} rule. This
      * method should only be called if the next tokens start a declaration
@@ -171,15 +180,17 @@ public final class Parser {
 
         String name = tokens.get(0).getLiteral();
         match(Token.Type.IDENTIFIER);
-        Optional<Ast.Expr> value = Optional.empty();
 
-        if(match("=")){
+        if (!peek("=")) {
+            throw new ParseException("Expected =", tokens.get(0).getIndex());
+        }
+        Optional<Ast.Expr> value = Optional.empty();
+        if (peek("=")) {
+            match("=");
             value = Optional.of(parseExpression());
         }
-        if(!match(";")){
-            throw new ParseException("Expected ;", tokens.get(0).getIndex());
-        }
         match(";");
+
         return new Ast.Stmt.Declaration(name, value);
     }
 
@@ -280,84 +291,96 @@ public final class Parser {
         match(";");
         return new Ast.Stmt.Return(value);
     }
+
     /**
      * Parses the {@code expression} rule.
      */
     public Ast.Expr parseExpression() throws ParseException {
         return parseLogicalExpression();
     }
+
     /**
      * Parses the {@code logical-expression} rule.
      */
     public Ast.Expr parseLogicalExpression() throws ParseException {
-        Ast.Expr rec = parseEqualityExpression();
-        while(true){
-            if(match("AND")){
-                rec = new Ast.Expr.Binary("AND", rec, parseEqualityExpression());
-            }else if(match("OR")){
-                rec = new Ast.Expr.Binary("OR", rec, parseEqualityExpression());
-            }else{
-                return rec;
+        Ast.Expr recurse = parseEqualityExpression();
+        while (true) {
+            if (match("AND")) {
+                recurse = new Ast.Expr.Binary("AND", recurse, parseEqualityExpression());
+            } else if (match("OR")) {
+                recurse = new Ast.Expr.Binary("OR", recurse, parseEqualityExpression());
+            } else {
+                break;
             }
         }
+        return recurse;
     }
+
     /**
      * Parses the {@code equality-expression} rule.
      */
-    //::= additive_expression ( ( '<' | '<=' | '>' | '>=' | '==' | '!=' ) additive_expression )*
     public Ast.Expr parseEqualityExpression() throws ParseException {
-        Ast.Expr rec = parseAdditiveExpression();
-        while(true){
-            if(match("<")){
-                rec = new Ast.Expr.Binary("<", rec, parseAdditiveExpression());
-            }else if(match("<=")){
-                rec = new Ast.Expr.Binary("<=", rec, parseAdditiveExpression());
-            }else if(match(">")){
-                rec = new Ast.Expr.Binary(">", rec, parseAdditiveExpression());
-            }else if(match(">=")){
-                rec = new Ast.Expr.Binary(">=", rec, parseAdditiveExpression());
-            }else if(match("==")){
-                rec = new Ast.Expr.Binary("==", rec, parseAdditiveExpression());
-            }else if(match("!=")){
-                rec = new Ast.Expr.Binary("!=", rec, parseAdditiveExpression());
-            }else{
-                return rec;
+        //Base case
+        Ast.Expr recurse = parseAdditiveExpression();
+        //recurse of a kind
+        while (true) {
+            if (match("<")) {
+                recurse = new Ast.Expr.Binary("<", recurse, parseAdditiveExpression());
+            } else if (match("<=")) {
+                recurse = new Ast.Expr.Binary("<=", recurse, parseAdditiveExpression());
+            } else if (match(">")) {
+                recurse = new Ast.Expr.Binary(">", recurse, parseAdditiveExpression());
+            } else if (match(">=")) {
+                recurse = new Ast.Expr.Binary(">=", recurse, parseAdditiveExpression());
+            } else if (match("==")) {
+                recurse = new Ast.Expr.Binary("==", recurse, parseAdditiveExpression());
+            } else if (match("!=")) {
+                recurse = new Ast.Expr.Binary("!=", recurse, parseAdditiveExpression());
+            } else {
+                break;
             }
-
         }
 
-//        return rec;
+        return recurse;
     }
+
     /**
      * Parses the {@code additive-expression} rule.
      */
     public Ast.Expr parseAdditiveExpression() throws ParseException {
-        Ast.Expr rec = parseMultiplicativeExpression();
-        while(true){
-            if(match("+")){
-                rec = new Ast.Expr.Binary("+", rec, parseMultiplicativeExpression());
-            } else if(match("-")){
-                rec = new Ast.Expr.Binary("-", rec, parseMultiplicativeExpression());
-            } else{
-                return rec;
+        Ast.Expr recursive = parseMultiplicativeExpression();
+        while (true) {
+            if (match("+")) {
+                Ast.Expr right = parseMultiplicativeExpression();
+                recursive = new Ast.Expr.Binary("+", recursive, right);
+            } else if (match("-")) {
+                Ast.Expr right = parseMultiplicativeExpression();
+                recursive = new Ast.Expr.Binary("-", recursive, right);
+            } else {
+                break;
             }
         }
+        return recursive;
     }
     /**
      * Parses the {@code multiplicative-expression} rule.
      */
     public Ast.Expr parseMultiplicativeExpression() throws ParseException {
-        Ast.Expr rec = parseSecondaryExpression();
-        while(true){
-            if(match("*")){
-                rec = new Ast.Expr.Binary("*", rec, parseSecondaryExpression());
-            }else if(match("/")){
-                rec = new Ast.Expr.Binary("/", rec, parseSecondaryExpression());
-            }else{
-                return rec;
+        Ast.Expr recursive = parseSecondaryExpression();
+        while (true) {
+            if (match("*")) {
+                Ast.Expr right = parseSecondaryExpression();
+                recursive = new Ast.Expr.Binary("*", recursive, right);
+            } else if (match("/")) {
+                Ast.Expr right = parseSecondaryExpression();
+                recursive = new Ast.Expr.Binary("/", recursive, right);
+            } else {
+                break;
             }
         }
+        return recursive;
     }
+
     /**
      * Parses the {@code secondary-expression} rule.
      */
@@ -395,6 +418,7 @@ public final class Parser {
         }
         return recursive;
     }
+
     /**
      * Parses the {@code primary-expression} rule. This is the top-level rule
      * for expressions and includes literal values, grouping, variables, and
@@ -402,22 +426,30 @@ public final class Parser {
      * not strictly necessary.
      */
     public Ast.Expr parsePrimaryExpression() throws ParseException {
-        if(match("(")){
+        //If it's an expression in (
+        if (peek("(")) {
+            match("(");
             Ast.Expr toReturn = parseExpression();
-            if (match(")")) {
-//                match(")");
+            if (peek(")")) {
+                match(")");
                 return new Ast.Expr.Group(toReturn);
             } else {
                 throw new ParseException("Expected )", 0);
             }
-        } else if (match("NIL")) {
-//            match("NIL");
-            return new Ast.Expr.Literal(null);
-        } else if(match("TRUE")) {
-            return new Ast.Expr.Literal(true);
-        } else if(match("FALSE")) {
-            return new Ast.Expr.Literal(false);
-        }else if (peek(Token.Type.IDENTIFIER)) {
+        }
+        else if (peek("NIL")) {
+                match("NIL");
+                return new Ast.Expr.Literal(null);
+            }
+        else if (peek("TRUE")) {
+                match("TRUE");
+                return new Ast.Expr.Literal(true);
+            }
+        else if (peek("FALSE")) {
+                match("FALSE");
+                return new Ast.Expr.Literal(false);
+            }
+        else if (peek(Token.Type.IDENTIFIER)) {
             String literal = tokens.get(0).getLiteral();
             match(Token.Type.IDENTIFIER);
             if (peek("(")) {
@@ -513,6 +545,7 @@ public final class Parser {
         }
         return result.toString();
     }
+
     /**
      * As in the lexer, returns {@code true} if the current sequence of tokens
      * matches the given patterns. Unlike the lexer, the pattern is not a regex;
@@ -528,28 +561,30 @@ public final class Parser {
             if (!tokens.has(i)) {
                 return false;
             }
-            else if (patterns[i] instanceof Token.Type) {
-                if (patterns[i] != tokens.get(i).getType()) {
-                    return false;
-                }
+             else if (patterns[i] instanceof Token.Type) {
+                 if (patterns[i] != tokens.get(i).getType()) {
+                     return false;
+                 }
             }
-            else if (patterns[i] instanceof String) {
-                if (!patterns[i].equals(tokens.get(i).getLiteral())) {
-                    return false;
+                else if (patterns[i] instanceof String) {
+                    if (!patterns[i].equals(tokens.get(i).getLiteral())) {
+                        return false;
+                    }
                 }
-            }
-            else {
-                throw new AssertionError("Invalid pattern object: " + patterns[i].getClass());
+                else {
+                    throw new AssertionError("Invalid pattern object: " + patterns[i].getClass());
             }
         }
         return true;
     }
+
     /**
      * As in the lexer, returns {@code true} if {@link #peek(Object...)} is true
      * and advances the token stream.
      */
     private boolean match(Object... patterns) {
         boolean peek = peek(patterns);
+
         if (peek) {
             for (int i = 0; i < patterns.length; i++ ) {
                 tokens.advance();
@@ -557,29 +592,37 @@ public final class Parser {
         }
         return peek;
     }
+
     private static final class TokenStream {
+
         private final List<Token> tokens;
         private int index = 0;
+
         private TokenStream(List<Token> tokens) {
             this.tokens = tokens;
         }
+
         /**
          * Returns true if there is a token at index + offset.
          */
         public boolean has(int offset) {
             return index + offset < tokens.size();
         }
+
         /**
          * Gets the token at index + offset.
          */
         public Token get(int offset) {
             return tokens.get(index + offset);
         }
+
         /**
          * Advances to the next token, incrementing the index.
          */
         public void advance() {
             index++;
         }
+
     }
+
 }
