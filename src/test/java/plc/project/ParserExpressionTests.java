@@ -30,7 +30,7 @@ final class ParserExpressionTests {
         return Stream.of(
                 Arguments.of("Function Expression",
                         Arrays.asList(
-                                //name();
+                                //name()
                                 new Token(Token.Type.IDENTIFIER, "name", 0),
                                 new Token(Token.Type.OPERATOR, "(", 4),
                                 new Token(Token.Type.OPERATOR, ")", 5)
@@ -39,14 +39,13 @@ final class ParserExpressionTests {
                 ),
                 Arguments.of("Function Expression",
                         Arrays.asList(
-                                //name();
+                                //f
                                 new Token(Token.Type.IDENTIFIER, "f", 0)
                         ),
                         new Ast.Stmt.Expression(new Ast.Expr.Function(Optional.empty(), "f", Arrays.asList()))
                 )
         );
     }
-
     @ParameterizedTest
     @MethodSource
     void testExpressionStatementTrue(String test, List<Token> tokens, Ast.Stmt.Expression expected) {
@@ -250,7 +249,8 @@ final class ParserExpressionTests {
         return Stream.of(
                 Arguments.of("False",
                         Arrays.asList(
-                                //expr1 AND expr2
+                                //expr1 AND
+                                // IF cond THEN
                                 new Token(Token.Type.IDENTIFIER, "expr1", 0),
                                 new Token(Token.Type.IDENTIFIER, "AND", 6)
 
