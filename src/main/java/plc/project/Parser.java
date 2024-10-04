@@ -63,6 +63,7 @@ public final class Parser {
                 Ast.Expr expression = parseExpression();
                 value = Optional.of(expression);
             }
+            System.out.println(peek(";"));
             if (peek(";")) {
                 match(";");
                 return new Ast.Field(name, value);
@@ -158,11 +159,15 @@ public final class Parser {
                 match(";");
                 return new Ast.Stmt.Expression(expr);
             }else{
+                System.out.println("hehehe");
                 throw new ParseException("Needed a ; at the end", 0);
             }
         }
         else {
-            throw new ParseException("Expected LET, IF, FOR, WHILE, RETURN, or IDENTIFIER", tokens.get(0).getIndex());
+//            System.out.println("HERE");
+//            System.out.println(tokens.get(-1).getLiteral());
+            System.out.println(tokens.get(-1).getLiteral().length() + tokens.get(-1).getIndex());
+            throw new ParseException("Expected LET, IF, FOR, WHILE, RETURN, or IDENTIFIER", tokens.get(-1).getLiteral().length() + tokens.get(-1).getIndex());
         }
     }
 
@@ -181,17 +186,21 @@ public final class Parser {
         String name = tokens.get(0).getLiteral();
         match(Token.Type.IDENTIFIER);
 
-        if (!peek("=")) {
-            throw new ParseException("Expected =", tokens.get(0).getIndex());
-        }
+//        if (!peek("=")) {
+//            throw new ParseException("Expected =", tokens.get(0).getIndex());
+//        }
+
         Optional<Ast.Expr> value = Optional.empty();
-        if (peek("=")) {
-            match("=");
+        if (match("=")) {
             value = Optional.of(parseExpression());
         }
-        match(";");
-
-        return new Ast.Stmt.Declaration(name, value);
+        System.out.println(tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
+        System.out.println(tokens.get(0).getIndex());
+        if(match(";")){
+            return new Ast.Stmt.Declaration(name, value);
+        }else{
+            throw new ParseException("Expected ;", tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
+        }
     }
 
     /**
@@ -211,8 +220,8 @@ public final class Parser {
             statements.add(parseStatement());
         }
 
-        if (peek("ELSE")) {
-            match("ELSE");
+        if (match("ELSE")) {
+//            match("ELSE");
             List<Ast.Stmt> elseStatements = new ArrayList<>();
             while (!peek("END")) {
                 elseStatements.add(parseStatement());
@@ -271,10 +280,21 @@ public final class Parser {
         if (!peek("DO")) {
             throw new ParseException("Expected DO", tokens.get(0).getIndex());
         }
+        System.out.println("here");
         match("DO");
+        System.out.println("here");
         List<Ast.Stmt> statements = new ArrayList<>();
-        while (!peek("END")) {
+        while (!peek("END")) { // ||
+            System.out.println(peek("."));
             statements.add(parseStatement());
+            System.out.println(peek("END"));
+//            if(token)
+        }
+
+        System.out.println("here");
+        if (!peek("END")) {
+            System.out.println("here");
+            throw new ParseException("Expected END", 1);
         }
         match("END");
         return new Ast.Stmt.While(condition, statements);
@@ -427,14 +447,14 @@ public final class Parser {
      */
     public Ast.Expr parsePrimaryExpression() throws ParseException {
         //If it's an expression in (
-        if (peek("(")) {
-            match("(");
+        if (match("(")) {
+//            match("(");
             Ast.Expr toReturn = parseExpression();
             if (peek(")")) {
                 match(")");
                 return new Ast.Expr.Group(toReturn);
             } else {
-                throw new ParseException("Expected )", 0);
+                throw new ParseException("Expected )", tokens.get(-1).getLiteral().length() + tokens.get(-1).getIndex());
             }
         }
         else if (peek("NIL")) {
@@ -517,7 +537,10 @@ public final class Parser {
             }
         }
         else {
-            throw new ParseException("Expected IDENTIFIER, INTEGER, DECIMAL, CHARACTER, STRING, NIL, TRUE, or FALSE", 0);
+//            System.out.println(tokens.get(-1).getLiteral());
+//            System.out.println(tokens.get(0).getLiteral());
+//            System.out.println(tokens.get(0).getLiteral());
+            throw new ParseException("Expected IDENTIFIER, INTEGER, DECIMAL, CHARACTER, STRING, NIL, TRUE, or FALSE", tokens.get(-1).getLiteral().length() + tokens.get(-1).getIndex());
         }
 
     }

@@ -120,6 +120,40 @@ final class ParserTests {
         );
     }
 
+
+    @ParameterizedTest
+    @MethodSource
+    void testDeclarationStatementFalse(String test, List<Token> tokens, Ast.Stmt.Declaration expected) {
+        test(tokens, null, Parser::parseStatement);
+    }
+
+    private static Stream<Arguments> testDeclarationStatementFalse() {
+        return Stream.of(
+                Arguments.of("Definition",
+                        Arrays.asList(
+                                //LET name
+                                new Token(Token.Type.IDENTIFIER, "LET", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4)
+//                                new Token(Token.Type.OPERATOR, ";", -1)
+                        ),
+                        new Ast.Stmt.Declaration("name", Optional.empty())
+                ),
+                Arguments.of("Initialization",
+                        Arrays.asList(
+                                //LET name = expr;
+                                new Token(Token.Type.IDENTIFIER, "LET", 0),
+                                new Token(Token.Type.IDENTIFIER, "name", 4),
+                                new Token(Token.Type.OPERATOR, "=", 9),
+                                new Token(Token.Type.IDENTIFIER, "expr", 11)
+//                                new Token(Token.Type.OPERATOR, ";", 15)
+                        ),
+                        new Ast.Stmt.Declaration("name", Optional.of(new Ast.Expr.Access(Optional.empty(), "expr")))
+                )
+        );
+    }
+
+
+
     @ParameterizedTest
     @MethodSource
     void testAssignmentStatement(String test, List<Token> tokens, Ast.Stmt.Assignment expected) {
@@ -237,6 +271,47 @@ final class ParserTests {
                                 new Token(Token.Type.IDENTIFIER, "stmt", 14),
                                 new Token(Token.Type.OPERATOR, ";", 18),
                                 new Token(Token.Type.IDENTIFIER, "END", 20)
+                        ),
+                        new Ast.Stmt.While(
+                                new Ast.Expr.Access(Optional.empty(), "expr"),
+                                Arrays.asList(new Ast.Stmt.Expression(new Ast.Expr.Access(Optional.empty(), "stmt")))
+                        )
+                )
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void testWhileStatementFalse(String test, List<Token> tokens, Ast.Stmt.While expected) {
+        test(tokens, null, Parser::parseStatement);
+    }
+
+    private static Stream<Arguments> testWhileStatementFalse() {
+        return Stream.of(
+                Arguments.of("While",
+                        Arrays.asList(
+                                //WHILE expr DO stmt; END
+                                new Token(Token.Type.IDENTIFIER, "WHILE", 0),
+                                new Token(Token.Type.IDENTIFIER, "exsspr", 6),
+                                new Token(Token.Type.IDENTIFIER, "Then", 11),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 14),
+                                new Token(Token.Type.OPERATOR, ";", 18),
+                                new Token(Token.Type.IDENTIFIER, "END", 20)
+                        ),
+                        new Ast.Stmt.While(
+                                new Ast.Expr.Access(Optional.empty(), "expr"),
+                                Arrays.asList(new Ast.Stmt.Expression(new Ast.Expr.Access(Optional.empty(), "stmt")))
+                        )
+                ),
+                Arguments.of("Whiwdle",
+                        Arrays.asList(
+                                //WHILE expr stmt; END
+                                new Token(Token.Type.IDENTIFIER, "WHILE", 0),
+                                new Token(Token.Type.IDENTIFIER, "expr", 6),
+//                                new Token(Token.Type.IDENTIFIER, "DO", 11),
+                                new Token(Token.Type.IDENTIFIER, "stmt", 11),
+                                new Token(Token.Type.OPERATOR, ";", 15),
+                                new Token(Token.Type.IDENTIFIER, "END", 17)
                         ),
                         new Ast.Stmt.While(
                                 new Ast.Expr.Access(Optional.empty(), "expr"),
