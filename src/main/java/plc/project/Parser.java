@@ -195,7 +195,7 @@ public final class Parser {
             value = Optional.of(parseExpression());
         }
         System.out.println(tokens.get(-1).getIndex() + tokens.get(-1).getLiteral().length());
-        System.out.println(tokens.get(0).getIndex());
+//        System.out.println(tokens.get(0).getIndex());
         if(match(";")){
             return new Ast.Stmt.Declaration(name, value);
         }else{
