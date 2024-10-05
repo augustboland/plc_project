@@ -150,6 +150,7 @@ public final class Parser {
                     match(";");
                     return new Ast.Stmt.Assignment(expr, value);
                 }else{
+`                    System.out.println("hahaha");
                     throw new ParseException("Needed a ; at the end", tokens.get(0).getIndex());
                 }
 //                return new Ast.Stmt.Assignment(expr, value);
@@ -454,6 +455,10 @@ public final class Parser {
                 match(")");
                 return new Ast.Expr.Group(toReturn);
             } else {
+                System.out.println(tokens.get(-1).getLiteral().length() + tokens.get(-1).getIndex());
+                System.out.println(tokens.get(-1).getLiteral().length());
+                System.out.println(tokens.get(-1).getIndex());
+                System.out.println("rwowleiwosi");
                 throw new ParseException("Expected )", tokens.get(-1).getLiteral().length() + tokens.get(-1).getIndex());
             }
         }
